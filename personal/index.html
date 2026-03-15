@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>漢字ビンゴ 個人用</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+      background: linear-gradient(160deg, #e8f4ff, #fff0f8);
+      color: #222;
+      min-height: 100vh;
+    }
+
+    header {
+      background: linear-gradient(135deg, #4a90d9, #7c4ddb);
+      padding: 14px 20px;
+      text-align: center;
+      box-shadow: 0 3px 12px rgba(70,100,200,0.3);
+    }
+    header h1 { font-size: 1.5rem; color: #fff; }
+    header p { font-size: 0.85rem; color: rgba(255,255,255,0.75); margin-top: 2px; }
+
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    /* ===== 学年選択 ===== */
+    #screen-select { padding: 24px 20px; max-width: 600px; margin: 0 auto; }
+    .select-heading { font-size: 1.2rem; text-align: center; margin-bottom: 20px; color: #444; }
+
+    .grade-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px; }
+    .grade-btn {
+      background: #fff; border: 3px solid #aaccff; border-radius: 14px;
+      padding: 20px 10px; text-align: center; cursor: pointer; transition: all 0.2s; font-family: inherit;
+    }
+    .grade-btn:hover { border-color: #4a90d9; background: #e8f0ff; transform: translateY(-3px); box-shadow: 0 4px 14px rgba(70,120,220,0.2); }
+    .grade-btn .num { font-size: 2rem; font-weight: bold; color: #4a90d9; }
+    .grade-btn .label { font-size: 0.85rem; color: #666; margin-top: 2px; }
+
+    .theme-section { margin-bottom: 24px; }
+    .theme-title { font-size: 0.9rem; color: #888; margin-bottom: 10px; text-align: center; }
+    .theme-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .theme-btn {
+      background: #fff; border: 2px solid #ddccff; border-radius: 10px;
+      padding: 12px 10px; cursor: pointer; font-size: 0.95rem; font-family: inherit;
+      transition: all 0.2s; color: #444;
+    }
+    .theme-btn:hover { border-color: #9966dd; background: #f5eeff; transform: translateY(-2px); }
+
+    /* ===== グリッド設定 ===== */
+    #screen-setup { padding: 20px; max-width: 720px; margin: 0 auto; }
+    .setup-heading { font-size: 1.1rem; text-align: center; color: #444; margin-bottom: 4px; }
+    .setup-sub { font-size: 0.85rem; text-align: center; color: #888; margin-bottom: 16px; }
+
+    .setup-layout { display: grid; grid-template-columns: 1fr 210px; gap: 20px; align-items: start; }
+
+    .kanji-pool { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+    .pool-card {
+      background: #fff; border: 2px solid #ccc; border-radius: 10px;
+      padding: 10px 4px 6px; text-align: center; cursor: pointer; transition: all 0.15s; user-select: none; position: relative;
+    }
+    .pool-card:hover { border-color: #4a90d9; background: #e8f0ff; }
+    .pool-card.selected { border-color: #4a90d9; background: #4a90d9; color: #fff; }
+    .pool-card .pw { font-size: 1.4rem; line-height: 1.1; }
+    .pool-card .pr { font-size: 0.55rem; color: #888; margin-top: 2px; }
+    .pool-card.selected .pr { color: rgba(255,255,255,0.7); }
+    .pool-card .num-badge {
+      position: absolute; top: 2px; right: 3px; font-size: 0.55rem; font-weight: bold;
+      color: #fff; background: #ff6644; border-radius: 8px; padding: 1px 3px; display: none;
+    }
+    .pool-card.selected .num-badge { display: block; }
+
+    .mini-grid-wrapper { position: sticky; top: 20px; }
+    .mini-grid-label { font-size: 0.8rem; color: #888; text-align: center; margin-bottom: 8px; }
+    .mini-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+    .mini-cell {
+      background: #f5f5f5; border: 1px solid #ddd; border-radius: 6px;
+      padding: 6px 2px; text-align: center; min-height: 56px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+    .mini-cell .mc-w { font-size: 1.1rem; line-height: 1.1; }
+    .mini-cell .mc-r { font-size: 0.5rem; color: #999; margin-top: 1px; }
+    .mini-cell.free { background: linear-gradient(135deg,#ffe066,#ffaa00); border-color: #ffaa00; }
+    .mini-cell.free .mc-w { font-size: 0.65rem; font-weight: bold; color: #fff; }
+    .mini-cell.filled { border-color: #4a90d9; background: #e8f4ff; }
+    .mini-cell.filled .mc-r { color: #669; }
+
+    .count-badge { text-align: center; font-size: 1.1rem; font-weight: bold; color: #4a90d9; margin: 10px 0; }
+    .count-badge span { color: #ff6644; }
+
+    .btn-start {
+      display: block; width: 100%; padding: 14px;
+      background: linear-gradient(135deg, #4a90d9, #7c4ddb); color: #fff;
+      border: none; border-radius: 12px; font-size: 1.1rem; font-family: inherit;
+      cursor: pointer; margin-top: 12px; transition: all 0.2s;
+      box-shadow: 0 4px 16px rgba(74,144,217,0.4);
+    }
+    .btn-start:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(74,144,217,0.5); }
+    .btn-start:disabled { background: #ccc; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    .btn-back {
+      background: none; border: none; color: #888; font-size: 0.9rem;
+      cursor: pointer; padding: 8px 0; font-family: inherit; display: block; margin: 10px auto 0;
+    }
+
+    /* ===== ゲーム画面 ===== */
+    #screen-game { padding: 16px; max-width: 800px; margin: 0 auto; }
+    .game-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+
+    /* ビンゴグリッド */
+    .bingo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .bingo-cell {
+      background: #fff; border: 3px solid #c8daff; border-radius: 12px;
+      padding: 10px 4px 7px; text-align: center; transition: all 0.3s;
+      min-height: 80px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+    }
+    .bingo-cell .bc-w { font-size: 1.7rem; font-weight: bold; line-height: 1.1; }
+    .bingo-cell .bc-r { font-size: 0.6rem; color: #99b; margin-top: 3px; }
+
+    .bingo-cell.free-cell { background: linear-gradient(135deg,#ffe066,#ffaa00); border-color: #ffaa00; }
+    .bingo-cell.free-cell .bc-w { font-size: 0.75rem; color: #fff; }
+
+    .bingo-cell.matched {
+      background: linear-gradient(135deg, #4a90d9, #5aa0e9);
+      border-color: #2266bb; color: #fff;
+      animation: cellMatch 0.4s ease-out;
+    }
+    .bingo-cell.matched .bc-r { color: rgba(255,255,255,0.7); }
+
+    .bingo-cell.bingo-line {
+      background: linear-gradient(135deg, #ff6644, #ff9922);
+      border-color: #ff4400; color: #fff;
+      animation: bingoPulse 0.8s ease-in-out infinite alternate;
+    }
+    .bingo-cell.bingo-line .bc-r { color: rgba(255,255,255,0.8); }
+
+    @keyframes cellMatch { 0% { transform: scale(1.25); } 100% { transform: scale(1); } }
+    @keyframes bingoPulse {
+      0%   { box-shadow: 0 0 8px rgba(255,100,0,0.5); }
+      100% { box-shadow: 0 0 22px rgba(255,100,0,0.9); }
+    }
+
+    /* ルーレット側 */
+    .game-right { display: flex; flex-direction: column; gap: 12px; }
+
+    .roulette-box {
+      background: linear-gradient(135deg, #1a1a4a, #2a2a7a);
+      border-radius: 16px; padding: 20px; text-align: center;
+      box-shadow: 0 4px 20px rgba(40,60,160,0.3);
+    }
+    .roulette-label { font-size: 0.8rem; color: rgba(255,255,255,0.5); letter-spacing: 0.1em; margin-bottom: 8px; }
+
+    .current-kanji-wrap {
+      min-height: 140px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 6px;
+    }
+    .current-word {
+      font-size: 7rem; font-weight: bold; color: #fff; line-height: 1;
+      text-shadow: 0 0 30px rgba(150,180,255,0.8);
+      transition: opacity 0.08s;
+    }
+    .current-reading {
+      font-size: 1.1rem; color: rgba(180,210,255,0.8);
+      min-height: 1.4rem; transition: opacity 0.3s;
+    }
+
+    .roulette-box.spinning .current-word { color: #aaccff; font-size: 5rem; }
+    .roulette-box.spinning .current-reading { opacity: 0; }
+    .roulette-box.landed { box-shadow: 0 4px 30px rgba(255,200,0,0.5); }
+    .roulette-box.landed .current-word { animation: landPop 0.45s ease-out; }
+
+    @keyframes landPop {
+      0%   { transform: scale(0.6); }
+      65%  { transform: scale(1.15); }
+      100% { transform: scale(1); }
+    }
+
+    .roulette-progress { font-size: 0.8rem; color: rgba(255,255,255,0.5); margin-top: 8px; }
+
+    .btn-draw {
+      width: 100%; padding: 16px;
+      background: linear-gradient(135deg, #ff8800, #ffbb00); color: #fff;
+      border: none; border-radius: 12px; font-size: 1.3rem; font-weight: bold;
+      font-family: inherit; cursor: pointer;
+      box-shadow: 0 4px 16px rgba(255,150,0,0.4); transition: all 0.2s;
+    }
+    .btn-draw:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255,150,0,0.6); }
+    .btn-draw:disabled { background: #ccc; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    .drawn-chips { display: flex; flex-wrap: wrap; gap: 4px; max-height: 120px; overflow-y: auto; }
+    .chip { background: #e8e8e8; border-radius: 6px; padding: 3px 7px; }
+    .chip .cp-w { font-size: 1rem; color: #555; }
+    .chip .cp-r { font-size: 0.55rem; color: #999; }
+    .chip.hit .cp-w { color: #2266bb; font-weight: bold; }
+    .chip.hit .cp-r { color: #5588cc; }
+
+    .bingo-announce {
+      background: linear-gradient(135deg, #ff6644, #ff9922); color: #fff;
+      text-align: center; padding: 12px; border-radius: 10px;
+      font-size: 1.3rem; font-weight: bold; display: none; margin-bottom: 12px;
+      animation: announceIn 0.5s ease-out;
+    }
+    @keyframes announceIn { 0% { transform: scale(0.5); opacity:0; } 100% { transform: scale(1); opacity:1; } }
+
+    /* ===== ビンゴ完成 ===== */
+    #screen-bingo { padding: 30px 20px; text-align: center; position: relative; overflow: hidden; }
+    .bingo-title {
+      font-size: 3.5rem; font-weight: bold;
+      background: linear-gradient(135deg, #ff6644, #ffbb00, #44cc88);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      margin-bottom: 10px; animation: titleBounce 0.6s ease-out;
+    }
+    @keyframes titleBounce { 0% { transform: scale(0); } 70% { transform: scale(1.2); } 100% { transform: scale(1); } }
+    .bingo-kanji-big { font-size: 5rem; margin: 12px 0; animation: spinIn 0.8s ease-out; }
+    @keyframes spinIn { 0% { transform: rotate(-180deg) scale(0); } 100% { transform: rotate(0) scale(1); } }
+    .bingo-msg { font-size: 1.2rem; color: #555; margin-bottom: 20px; }
+
+    .bingo-buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .btn-replay { background: linear-gradient(135deg,#4a90d9,#7c4ddb); color:#fff; border:none; border-radius:12px; padding:14px 28px; font-size:1.1rem; font-family:inherit; cursor:pointer; }
+    .btn-new    { background: linear-gradient(135deg,#33aa77,#44cc88); color:#fff; border:none; border-radius:12px; padding:14px 28px; font-size:1.1rem; font-family:inherit; cursor:pointer; }
+
+    /* 紙吹雪 */
+    #confetti-canvas { position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:1000; display:none; }
+
+    @media (max-width: 600px) {
+      .setup-layout { grid-template-columns: 1fr; }
+      .game-layout  { grid-template-columns: 1fr; }
+      .current-word { font-size: 5rem; }
+      .bingo-cell { min-height: 66px; }
+      .bingo-cell .bc-w { font-size: 1.4rem; }
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="confetti-canvas"></canvas>
+
+<header>
+  <h1>🎴 漢字ビンゴ</h1>
+  <p>自分でビンゴカードを作って遊ぼう！</p>
+</header>
+
+<!-- 学年選択 -->
+<div id="screen-select" class="screen active">
+  <div style="padding:24px 20px; max-width:600px; margin:0 auto;">
+    <p class="select-heading">🎓 学年を選んでね</p>
+    <div class="grade-grid">
+      <button class="grade-btn" onclick="selectGrade('1年生')"><div class="num">1</div><div class="label">年生</div></button>
+      <button class="grade-btn" onclick="selectGrade('2年生')"><div class="num">2</div><div class="label">年生</div></button>
+      <button class="grade-btn" onclick="selectGrade('3年生')"><div class="num">3</div><div class="label">年生</div></button>
+      <button class="grade-btn" onclick="selectGrade('4年生')"><div class="num">4</div><div class="label">年生</div></button>
+      <button class="grade-btn" onclick="selectGrade('5年生')"><div class="num">5</div><div class="label">年生</div></button>
+      <button class="grade-btn" onclick="selectGrade('6年生')"><div class="num">6</div><div class="label">年生</div></button>
+    </div>
+    <div class="theme-section">
+      <p class="theme-title">または テーマで選ぶ</p>
+      <div class="theme-grid" id="theme-btns"></div>
+    </div>
+  </div>
+</div>
+
+<!-- カード設定 -->
+<div id="screen-setup" class="screen">
+  <div style="padding:20px; max-width:720px; margin:0 auto;">
+    <p class="setup-heading" id="setup-heading">カードを作ろう！</p>
+    <p class="setup-sub">8個をタップして選んでね（真ん中はフリー）</p>
+    <div class="setup-layout">
+      <div>
+        <div class="kanji-pool" id="kanji-pool"></div>
+      </div>
+      <div class="mini-grid-wrapper">
+        <p class="mini-grid-label">あなたのカード</p>
+        <div class="mini-grid" id="mini-grid">
+          <div class="mini-cell"></div><div class="mini-cell"></div><div class="mini-cell"></div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell free"><div class="mc-w">FREE</div></div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell"></div><div class="mini-cell"></div><div class="mini-cell"></div>
+        </div>
+        <div class="count-badge"><span id="sel-count">0</span> / 8 こ</div>
+        <button class="btn-start" id="btn-start" onclick="startGame()" disabled>🎲 ゲームスタート！</button>
+        <button class="btn-back" onclick="showScreen('select')">← 学年を選び直す</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ゲーム -->
+<div id="screen-game" class="screen">
+  <div style="padding:16px; max-width:800px; margin:0 auto;">
+    <div id="bingo-announce" class="bingo-announce">🎉 ビンゴ！</div>
+    <div class="game-layout">
+      <div>
+        <div class="bingo-grid" id="bingo-grid"></div>
+        <button class="btn-back" style="margin-top:16px;" onclick="goSetup()">← カードを作り直す</button>
+      </div>
+      <div class="game-right">
+        <div class="roulette-box" id="roulette-box">
+          <p class="roulette-label">✨ 今の漢字</p>
+          <div class="current-kanji-wrap">
+            <div class="current-word" id="current-word">？</div>
+            <div class="current-reading" id="current-reading"></div>
+          </div>
+          <p class="roulette-progress" id="roulette-progress">0 / 15</p>
+        </div>
+        <button class="btn-draw" id="btn-draw" onclick="drawKanji()">🎲 つぎへ</button>
+        <div>
+          <p style="font-size:0.8rem;color:#888;margin-bottom:6px;">出た漢字</p>
+          <div class="drawn-chips" id="drawn-chips"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ビンゴ完成 -->
+<div id="screen-bingo" class="screen">
+  <div style="max-width:500px; margin:0 auto;">
+    <div class="bingo-kanji-big">🎉</div>
+    <div class="bingo-title">BINGO！！</div>
+    <p class="bingo-msg" id="bingo-msg">すごい！ビンゴが完成したよ！</p>
+    <div style="margin-bottom:24px;">
+      <div class="bingo-grid" id="bingo-grid-result" style="max-width:320px;margin:0 auto;"></div>
+    </div>
+    <div class="bingo-buttons">
+      <button class="btn-replay" onclick="continueGame()">続ける</button>
+      <button class="btn-replay" onclick="goSetup()">新しいカードで</button>
+      <button class="btn-new" onclick="showScreen('select')">学年を変える</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===========================
+// 漢字データ {word, reading}
+// ===========================
+const K = (word, reading) => ({ word, reading });
+
+const KANJI_DATA = {
+  grades: {
+    '1年生': [
+      K('一','いち'), K('二','に'), K('三','さん'), K('四','し'), K('五','ご'),
+      K('六','ろく'), K('七','しち'), K('八','はち'), K('九','く'), K('十','じゅう'),
+      K('百','ひゃく'), K('千','せん'), K('万','まん'), K('円','えん'), K('年','ねん'),
+      K('日','にち'), K('月','つき'), K('火','ひ'), K('水','みず'), K('木','き'),
+      K('金','きん'), K('土','つち'), K('上','うえ'), K('下','した'), K('左','ひだり'),
+      K('右','みぎ'), K('中','なか'), K('大','だい'), K('小','しょう'),
+      K('山','やま'), K('川','かわ'), K('田','た'), K('人','ひと'), K('口','くち'),
+      K('目','め'), K('耳','みみ'), K('手','て'), K('足','あし'),
+      K('本','ほん'), K('文','ぶん'), K('字','じ'), K('学','がく'), K('校','こう'),
+      K('先','さき'), K('生','せい'), K('気','き'),
+      K('白','しろ'), K('赤','あか'), K('青','あお'), K('空','そら'), K('雨','あめ'),
+      K('石','いし'), K('森','もり'), K('林','はやし'), K('花','はな'), K('草','くさ'),
+      K('虫','むし'), K('貝','かい'), K('魚','さかな'), K('鳥','とり'), K('犬','いぬ'),
+      K('力','ちから'), K('男','おとこ'), K('女','おんな'), K('子','こ'), K('王','おう'),
+      K('玉','たま'), K('入る','はいる'), K('出る','でる'), K('見る','みる'), K('言う','いう'),
+      K('長い','ながい'), K('友','とも'), K('早い','はやい'), K('正しい','ただしい'),
+      K('名','な'), K('車','くるま'), K('休む','やすむ'),
+    ],
+    '2年生': [
+      K('春','はる'), K('夏','なつ'), K('秋','あき'), K('冬','ふゆ'),
+      K('朝','あさ'), K('昼','ひる'), K('夜','よる'), K('週','しゅう'), K('回','かい'),
+      K('時','じ'), K('分','ふん'), K('数','かず'), K('算','さん'), K('国','くに'),
+      K('語','ご'), K('社','しゃ'), K('科','か'), K('図','ず'), K('音','おと'),
+      K('体','からだ'), K('家','いえ'), K('族','ぞく'),
+      K('父','ちち'), K('母','はは'), K('兄','あに'), K('弟','おとうと'),
+      K('姉','あね'), K('妹','いもうと'),
+      K('地','ち'), K('池','いけ'), K('海','うみ'), K('谷','たに'), K('野','の'),
+      K('原','はら'), K('岩','いわ'), K('雲','くも'), K('台','だい'),
+      K('止まる','とまる'), K('走る','はしる'), K('歩く','あるく'),
+      K('来る','くる'), K('行く','いく'), K('帰る','かえる'),
+      K('食べる','たべる'), K('飲む','のむ'), K('買う','かう'), K('売る','うる'),
+      K('東','ひがし'), K('西','にし'), K('南','みなみ'), K('北','きた'),
+      K('公','こう'), K('園','えん'), K('寺','てら'), K('店','みせ'), K('市','し'),
+      K('読む','よむ'), K('書く','かく'), K('話す','はなす'), K('聞く','きく'),
+      K('思う','おもう'), K('考える','かんがえる'), K('作る','つくる'),
+      K('午','ご'), K('前','まえ'), K('後ろ','うしろ'), K('直す','なおす'),
+      K('親','おや'), K('答える','こたえる'), K('点','てん'),
+      K('顔','かお'), K('形','かたち'), K('光','ひかり'), K('色','いろ'),
+    ],
+    '3年生': [
+      K('化ける','ばける'), K('荷物','にもつ'), K('歌う','うたう'),
+      K('解く','とく'), K('開く','ひらく'), K('楽しい','たのしい'),
+      K('寒い','さむい'), K('感じる','かんじる'), K('急ぐ','いそぐ'),
+      K('決める','きめる'), K('県','けん'), K('元','もと'),
+      K('湖','みずうみ'), K('向く','むく'), K('幸せ','しあわせ'), K('港','みなと'),
+      K('根','ね'), K('様','さま'), K('実','み'), K('主','ぬし'),
+      K('守る','まもる'), K('宿','しゅく'), K('所','ところ'),
+      K('暑い','あつい'), K('助ける','たすける'), K('勝つ','かつ'),
+      K('消える','きえる'), K('植える','うえる'), K('身','み'), K('倍','ばい'),
+      K('畑','はたけ'), K('服','ふく'), K('物','もの'), K('平','たいら'),
+      K('放す','はなす'), K('丸い','まるい'), K('緑','みどり'), K('路','みち'),
+      K('和','わ'), K('温かい','あたたかい'), K('院','いん'), K('駅','えき'),
+      K('橋','はし'), K('集まる','あつまる'), K('進む','すすむ'),
+      K('速い','はやい'), K('着く','つく'), K('落ちる','おちる'),
+      K('流れる','ながれる'), K('波','なみ'), K('品','しな'), K('計る','はかる'),
+    ],
+    '4年生': [
+      K('愛','あい'), K('案','あん'), K('位','くらい'), K('育つ','そだつ'),
+      K('衣','ころも'), K('塩','しお'), K('億','おく'),
+      K('加える','くわえる'), K('果たす','はたす'), K('芽','め'),
+      K('改める','あらためる'), K('覚える','おぼえる'),
+      K('完全','かんぜん'), K('願う','ねがう'),
+      K('希望','きぼう'), K('季節','きせつ'), K('旗','はた'), K('器','うつわ'),
+      K('喜ぶ','よろこぶ'), K('初めて','はじめて'), K('努力','どりょく'),
+      K('倍','ばい'), K('敗れる','やぶれる'), K('梅','うめ'), K('飯','めし'),
+      K('標','ひょう'), K('付く','つく'), K('変わる','かわる'),
+      K('末','すえ'), K('満ちる','みちる'), K('民','たみ'),
+      K('命','いのち'), K('面','おもて'), K('養う','やしなう'),
+      K('輪','わ'), K('録','ろく'), K('例','れい'), K('冷たい','つめたい'),
+      K('類','るい'), K('連なる','つらなる'), K('料','りょう'),
+      K('量','りょう'), K('両','りょう'), K('旅','たび'),
+    ],
+    '5年生': [
+      K('移る','うつる'), K('映る','うつる'), K('液体','えきたい'),
+      K('演じる','えんじる'), K('応える','こたえる'),
+      K('桜','さくら'), K('仮','かり'), K('価値','かち'),
+      K('過ぎる','すぎる'), K('快い','こころよい'), K('確かめる','たしかめる'),
+      K('幹','みき'), K('慣れる','なれる'), K('技','わざ'),
+      K('逆らう','さからう'), K('居る','いる'), K('許す','ゆるす'),
+      K('禁じる','きんじる'), K('経る','へる'), K('潔い','いさぎよい'),
+      K('限る','かぎる'), K('現れる','あらわれる'), K('減る','へる'),
+      K('護る','まもる'), K('効く','きく'), K('厚い','あつい'),
+      K('耕す','たがやす'), K('構える','かまえる'), K('混ぜる','まぜる'),
+      K('災い','わざわい'), K('採る','とる'), K('雑','ざつ'),
+      K('支える','ささえる'), K('示す','しめす'), K('似る','にる'),
+      K('謝る','あやまる'), K('述べる','のべる'), K('承る','うけたまわる'),
+      K('情け','なさけ'), K('利く','きく'), K('練る','ねる'),
+    ],
+    '6年生': [
+      K('異なる','ことなる'), K('遺す','のこす'), K('延びる','のびる'),
+      K('沿う','そう'), K('我','われ'), K('拡げる','ひろげる'),
+      K('割る','わる'), K('干す','ほす'), K('巻く','まく'),
+      K('危ない','あぶない'), K('机','つくえ'), K('揮う','ふるう'),
+      K('貴い','とうとい'), K('疑う','うたがう'), K('吸う','すう'),
+      K('胸','むね'), K('勤める','つとめる'), K('筋','すじ'),
+      K('敬う','うやまう'), K('劇','げき'), K('激しい','はげしい'),
+      K('穴','あな'), K('憲法','けんぽう'), K('厳しい','きびしい'),
+      K('源','みなもと'), K('呼ぶ','よぶ'), K('誤る','あやまる'),
+      K('孝行','こうこう'), K('紅','くれない'), K('降りる','おりる'),
+      K('刻む','きざむ'), K('骨','ほね'), K('困る','こまる'),
+      K('砂','すな'), K('座る','すわる'), K('裁く','さばく'),
+      K('至る','いたる'), K('私','わたし'), K('姿','すがた'),
+      K('若い','わかい'), K('樹','き'), K('収める','おさめる'),
+      K('従う','したがう'), K('縦','たて'), K('縮む','ちぢむ'),
+      K('専門','せんもん'), K('泉','いずみ'), K('洗う','あらう'),
+      K('染める','そめる'), K('善い','よい'), K('奏でる','かなでる'),
+      K('窓','まど'), K('創る','つくる'), K('操る','あやつる'),
+      K('蔵','くら'), K('尊い','とうとい'),
+    ],
+  },
+  themes: {
+    '食べ物🍱': [
+      K('食べる','たべる'), K('飯','めし'), K('飲む','のむ'), K('米','こめ'),
+      K('野菜','やさい'), K('肉','にく'), K('魚','さかな'), K('豆','まめ'),
+      K('塩','しお'), K('茶','ちゃ'), K('餅','もち'), K('汁','しる'),
+      K('菓子','かし'), K('湯','ゆ'), K('卵','たまご'),
+    ],
+    '体の部位🫀': [
+      K('頭','あたま'), K('顔','かお'), K('首','くび'), K('肩','かた'), K('腕','うで'),
+      K('腰','こし'), K('足','あし'), K('胸','むね'), K('背','せ'), K('腹','はら'),
+      K('手','て'), K('目','め'), K('耳','みみ'), K('口','くち'), K('鼻','はな'),
+    ],
+    '方向・場所🧭': [
+      K('東','ひがし'), K('西','にし'), K('南','みなみ'), K('北','きた'),
+      K('上','うえ'), K('下','した'), K('前','まえ'), K('後ろ','うしろ'),
+      K('右','みぎ'), K('左','ひだり'), K('内','うち'), K('外','そと'), K('中','なか'),
+      K('横','よこ'), K('縦','たて'),
+    ],
+    '動き・動詞🏃': [
+      K('走る','はしる'), K('歩く','あるく'), K('飛ぶ','とぶ'), K('泳ぐ','およぐ'),
+      K('投げる','なげる'), K('打つ','うつ'), K('押す','おす'), K('引く','ひく'),
+      K('叫ぶ','さけぶ'), K('笑う','わらう'), K('泣く','なく'), K('眠る','ねむる'),
+      K('起きる','おきる'), K('寝る','ねる'), K('遊ぶ','あそぶ'),
+    ],
+  }
+};
+
+// ===========================
+// 状態
+// ===========================
+let selectedGroup = '';
+let allKanji = [];
+let selectedKanji = [];
+let gridKanji = [];
+let markedCells = new Set();
+let drawnKanji = [];
+let remainingKanji = [];
+let bingoLines = [];
+let isSpinning = false;
+let confettiAnimId = null;
+
+const FREE_INDEX = 4;
+const BINGO_LINES = [
+  [0,1,2],[3,4,5],[6,7,8],
+  [0,3,6],[1,4,7],[2,5,8],
+  [0,4,8],[2,4,6]
+];
+
+// ===========================
+// 初期化
+// ===========================
+function init() {
+  const themeDiv = document.getElementById('theme-btns');
+  Object.entries(KANJI_DATA.themes).forEach(([name, list]) => {
+    const btn = document.createElement('button');
+    btn.className = 'theme-btn';
+    btn.textContent = name;
+    btn.onclick = () => selectGrade(name, list);
+    themeDiv.appendChild(btn);
+  });
+}
+
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+}
+
+// ===========================
+// 学年選択
+// ===========================
+function selectGrade(grade, customList) {
+  selectedGroup = grade;
+  const list = customList || KANJI_DATA.grades[grade] || [];
+  const shuffled = [...list].sort(() => Math.random() - 0.5);
+  allKanji = shuffled.slice(0, 15);
+  selectedKanji = [];
+  showScreen('setup');
+  renderPool();
+  renderMiniGrid();
+  updateCount();
+  document.getElementById('setup-heading').textContent = `📖 ${grade} のカードを作ろう！`;
+}
+
+// ===========================
+// カード設定
+// ===========================
+function renderPool() {
+  const pool = document.getElementById('kanji-pool');
+  pool.innerHTML = '';
+  allKanji.forEach((k, i) => {
+    const card = document.createElement('div');
+    card.className = 'pool-card';
+    card.id = `pool-${i}`;
+    card.innerHTML = `<div class="pw">${k.word}</div><div class="pr">${k.reading}</div><span class="num-badge" id="badge-${i}"></span>`;
+    card.onclick = () => toggleKanji(i);
+    pool.appendChild(card);
+  });
+}
+
+function toggleKanji(idx) {
+  const k = allKanji[idx];
+  const pos = selectedKanji.findIndex(s => s.word === k.word);
+  const card = document.getElementById(`pool-${idx}`);
+
+  if (pos === -1) {
+    if (selectedKanji.length >= 8) return;
+    selectedKanji.push(k);
+    card.classList.add('selected');
+    document.getElementById(`badge-${idx}`).textContent = selectedKanji.length;
+  } else {
+    selectedKanji.splice(pos, 1);
+    card.classList.remove('selected');
+    refreshBadges();
+  }
+  renderMiniGrid();
+  updateCount();
+}
+
+function refreshBadges() {
+  allKanji.forEach((k, i) => {
+    const pos = selectedKanji.findIndex(s => s.word === k.word);
+    const card = document.getElementById(`pool-${i}`);
+    const badge = document.getElementById(`badge-${i}`);
+    if (pos === -1) { card.classList.remove('selected'); }
+    else { card.classList.add('selected'); badge.textContent = pos + 1; }
+  });
+}
+
+function renderMiniGrid() {
+  const cells = document.querySelectorAll('#mini-grid .mini-cell');
+  let sIdx = 0;
+  cells.forEach((cell, i) => {
+    if (i === FREE_INDEX) {
+      cell.className = 'mini-cell free';
+      cell.innerHTML = '<div class="mc-w">FREE</div>';
+      return;
+    }
+    if (sIdx < selectedKanji.length) {
+      const k = selectedKanji[sIdx++];
+      cell.className = 'mini-cell filled';
+      cell.innerHTML = `<div class="mc-w">${k.word}</div><div class="mc-r">${k.reading}</div>`;
+    } else {
+      cell.className = 'mini-cell';
+      cell.innerHTML = '';
+    }
+  });
+}
+
+function updateCount() {
+  document.getElementById('sel-count').textContent = selectedKanji.length;
+  document.getElementById('btn-start').disabled = selectedKanji.length < 8;
+}
+
+// ===========================
+// ゲーム開始
+// ===========================
+function startGame() {
+  gridKanji = [];
+  let sIdx = 0;
+  for (let i = 0; i < 9; i++) {
+    gridKanji.push(i === FREE_INDEX ? null : selectedKanji[sIdx++]);
+  }
+  markedCells = new Set([FREE_INDEX]);
+  drawnKanji = [];
+  remainingKanji = [...allKanji].sort(() => Math.random() - 0.5);
+  bingoLines = [];
+  isSpinning = false;
+
+  document.getElementById('current-word').textContent = '？';
+  document.getElementById('current-reading').textContent = '';
+  document.getElementById('roulette-box').className = 'roulette-box';
+  document.getElementById('roulette-progress').textContent = `0 / ${allKanji.length}`;
+  document.getElementById('drawn-chips').innerHTML = '';
+  document.getElementById('bingo-announce').style.display = 'none';
+  document.getElementById('btn-draw').disabled = false;
+
+  renderBingoGrid();
+  showScreen('game');
+}
+
+function renderBingoGrid() {
+  const grid = document.getElementById('bingo-grid');
+  grid.innerHTML = '';
+  gridKanji.forEach((k, i) => {
+    const cell = document.createElement('div');
+    cell.className = 'bingo-cell';
+    cell.id = `cell-${i}`;
+    if (i === FREE_INDEX) {
+      cell.classList.add('free-cell');
+      cell.innerHTML = '<div class="bc-w">FREE</div>';
+    } else {
+      cell.innerHTML = `<div class="bc-w">${k.word}</div><div class="bc-r">${k.reading}</div>`;
+      if (markedCells.has(i)) cell.classList.add('matched');
+    }
+    grid.appendChild(cell);
+  });
+}
+
+// ===========================
+// 漢字を引く（スロット演出）
+// ===========================
+function drawKanji() {
+  if (isSpinning || remainingKanji.length === 0) return;
+  isSpinning = true;
+  document.getElementById('btn-draw').disabled = true;
+
+  const target = remainingKanji.shift();
+  const pool = allKanji.filter(k => k.word !== target.word);
+
+  const box = document.getElementById('roulette-box');
+  const wordEl = document.getElementById('current-word');
+  const readingEl = document.getElementById('current-reading');
+
+  box.className = 'roulette-box spinning';
+  readingEl.textContent = '';
+
+  const startTime = Date.now();
+  const SPIN_MS = 2000;
+
+  function getInterval(elapsed) {
+    const prog = elapsed / SPIN_MS;
+    if (prog < 0.55) return 65;
+    const slow = (prog - 0.55) / 0.45;
+    return 65 + slow * slow * 360;
+  }
+
+  function frame() {
+    const elapsed = Date.now() - startTime;
+    if (elapsed >= SPIN_MS) {
+      // 着地
+      box.className = 'roulette-box landed';
+      wordEl.textContent = target.word;
+      readingEl.textContent = target.reading;
+
+      drawnKanji.push(target);
+      markCells(target);
+      addChip(target);
+
+      document.getElementById('roulette-progress').textContent =
+        `${drawnKanji.length} / ${allKanji.length}`;
+
+      const newBingo = checkBingo();
+      if (newBingo.length > 0) {
+        highlightBingoLines(newBingo);
+        setTimeout(() => triggerBingo(newBingo.length), 700);
+      }
+
+      if (remainingKanji.length === 0) {
+        document.getElementById('btn-draw').disabled = true;
+      } else {
+        document.getElementById('btn-draw').disabled = false;
+      }
+      isSpinning = false;
+      return;
+    }
+
+    const src = pool.length > 0 ? pool : allKanji;
+    wordEl.textContent = src[Math.floor(Math.random() * src.length)].word;
+    setTimeout(frame, getInterval(elapsed));
+  }
+
+  frame();
+}
+
+function markCells(target) {
+  gridKanji.forEach((k, i) => {
+    if (k && k.word === target.word) {
+      markedCells.add(i);
+      const cell = document.getElementById(`cell-${i}`);
+      if (cell && !cell.classList.contains('bingo-line')) cell.classList.add('matched');
+    }
+  });
+}
+
+function addChip(k) {
+  const isHit = gridKanji.some((g, i) => g && g.word === k.word && markedCells.has(i));
+  const chip = document.createElement('div');
+  chip.className = 'chip' + (isHit ? ' hit' : '');
+  chip.innerHTML = `<div class="cp-w">${k.word}</div><div class="cp-r">${k.reading}</div>`;
+  document.getElementById('drawn-chips').prepend(chip);
+}
+
+// ===========================
+// ビンゴ判定
+// ===========================
+function checkBingo() {
+  const newLines = [];
+  BINGO_LINES.forEach(line => {
+    const key = line.join(',');
+    const already = bingoLines.some(bl => bl.join(',') === key);
+    if (!already && line.every(i => markedCells.has(i))) {
+      newLines.push(line);
+    }
+  });
+  newLines.forEach(l => bingoLines.push(l));
+  return newLines;
+}
+
+function highlightBingoLines(lines) {
+  lines.forEach(line => {
+    line.forEach(i => {
+      const cell = document.getElementById(`cell-${i}`);
+      if (cell) cell.classList.add('bingo-line');
+    });
+  });
+}
+
+function triggerBingo(count) {
+  const announce = document.getElementById('bingo-announce');
+  announce.textContent = count > 1 ? `🎉 ${count}ビンゴ！！` : '🎉 ビンゴ！';
+  announce.style.display = 'block';
+  launchConfetti();
+  setTimeout(() => showBingoScreen(count), 2000);
+}
+
+function showBingoScreen(count) {
+  document.getElementById('bingo-grid-result').innerHTML =
+    document.getElementById('bingo-grid').innerHTML;
+  document.getElementById('bingo-msg').textContent =
+    count > 1 ? `${count}ビンゴ達成！！おめでとう！！` : 'ビンゴ達成！おめでとう！';
+  showScreen('bingo');
+}
+
+function continueGame() { showScreen('game'); }
+function goSetup() { stopConfetti(); showScreen('setup'); }
+
+// ===========================
+// 紙吹雪
+// ===========================
+const COLORS = ['#ff6644','#ffbb00','#44cc88','#4a90d9','#cc44ff','#ff44aa'];
+let particles = [];
+
+function launchConfetti() {
+  const canvas = document.getElementById('confetti-canvas');
+  canvas.style.display = 'block';
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  particles = Array.from({length: 120}, () => ({
+    x: Math.random() * canvas.width,
+    y: -10 - Math.random() * 100,
+    w: 8 + Math.random() * 8, h: 4 + Math.random() * 4,
+    color: COLORS[Math.floor(Math.random() * COLORS.length)],
+    vx: (Math.random() - 0.5) * 3,
+    vy: 2 + Math.random() * 4,
+    rot: Math.random() * Math.PI * 2,
+    vrot: (Math.random() - 0.5) * 0.2,
+  }));
+
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles.forEach(p => {
+      p.x += p.vx; p.y += p.vy; p.rot += p.vrot;
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      ctx.fillStyle = p.color; ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
+      ctx.restore();
+    });
+    particles = particles.filter(p => p.y < canvas.height + 20);
+    if (particles.length > 0) confettiAnimId = requestAnimationFrame(animate);
+    else canvas.style.display = 'none';
+  }
+
+  if (confettiAnimId) cancelAnimationFrame(confettiAnimId);
+  animate();
+}
+
+function stopConfetti() {
+  if (confettiAnimId) cancelAnimationFrame(confettiAnimId);
+  document.getElementById('confetti-canvas').style.display = 'none';
+  particles = [];
+}
+
+init();
+</script>
+</body>
+</html>

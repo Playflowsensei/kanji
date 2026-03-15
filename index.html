@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>漢字ビンゴ</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+      background: linear-gradient(160deg, #e8f4ff, #fff0f8);
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .container { text-align: center; padding: 40px 20px; }
+    h1 { font-size: 2.5rem; margin-bottom: 8px; }
+    p { color: #666; margin-bottom: 40px; font-size: 1rem; }
+    .cards { display: flex; gap: 24px; justify-content: center; flex-wrap: wrap; }
+    .card {
+      display: block; text-decoration: none;
+      background: #fff; border-radius: 20px;
+      padding: 36px 40px; width: 220px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      transition: all 0.2s;
+    }
+    .card:hover { transform: translateY(-6px); box-shadow: 0 10px 30px rgba(0,0,0,0.15); }
+    .card .icon { font-size: 3rem; margin-bottom: 12px; }
+    .card .title { font-size: 1.2rem; font-weight: bold; color: #333; margin-bottom: 6px; }
+    .card .desc { font-size: 0.85rem; color: #888; }
+    .card-student { border-top: 5px solid #4a90d9; }
+    .card-teacher { border-top: 5px solid #7c4ddb; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎴 漢字ビンゴ</h1>
+    <p>どちらを使いますか？</p>
+    <div class="cards">
+      <a href="personal/" class="card card-student">
+        <div class="icon">👦</div>
+        <div class="title">個人用</div>
+        <div class="desc">自分でカードを作って遊ぶ</div>
+      </a>
+      <a href="classroom/" class="card card-teacher">
+        <div class="icon">👩‍🏫</div>
+        <div class="title">教室用</div>
+        <div class="desc">先生が授業で使う</div>
+      </a>
+    </div>
+  </div>
+</body>
+</html>

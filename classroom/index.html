@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>漢字ビンゴ 教師用</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+      background: #0f0f23;
+      color: #e8e8e8;
+      min-height: 100vh;
+    }
+
+    header {
+      background: linear-gradient(135deg, #1a1a4e, #2d2d7a);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px solid #4444aa;
+      box-shadow: 0 2px 12px rgba(0,0,80,0.5);
+    }
+    header h1 { font-size: 1.5rem; color: #fff; }
+    header .badge { font-size: 0.75rem; background: #4444cc; color: #cce; padding: 4px 10px; border-radius: 12px; }
+
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    /* 選択画面 */
+    #screen-select { padding: 24px; max-width: 900px; margin: 0 auto; }
+    .section-title { font-size: 1rem; color: #aaa; letter-spacing: 0.08em; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid #333; }
+    .group-section { margin-bottom: 32px; }
+    .group-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+    .group-btn {
+      background: #1e1e4a; border: 2px solid #3333aa; color: #ccd;
+      padding: 10px 16px; border-radius: 8px; cursor: pointer; font-size: 1rem;
+      transition: all 0.2s; line-height: 1.3; font-family: inherit;
+    }
+    .group-btn:hover { background: #2a2a7a; border-color: #6688ff; color: #fff; transform: translateY(-2px); }
+    .group-btn span { font-size: 0.72rem; color: #778; display: block; }
+
+    /* 候補画面 */
+    #screen-candidates { padding: 24px; max-width: 780px; margin: 0 auto; }
+    .screen-heading { font-size: 1.3rem; margin-bottom: 6px; color: #ccf; }
+    .screen-sub { font-size: 0.9rem; color: #888; margin-bottom: 20px; }
+
+    .kanji-grid-15 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 24px; }
+
+    .kanji-card {
+      background: #1a1a4a; border: 2px solid #3344aa; border-radius: 10px;
+      padding: 12px 6px 8px; text-align: center; cursor: pointer; transition: all 0.2s;
+    }
+    .kanji-card:hover { border-color: #ff6655; background: #3a1a1a; }
+    .kanji-card.removed { opacity: 0.25; border-style: dashed; }
+    .kanji-card .kw { font-size: 1.8rem; line-height: 1.1; }
+    .kanji-card .kr { font-size: 0.65rem; color: #88aadd; margin-top: 3px; }
+
+    .btn-row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .btn { padding: 12px 22px; border-radius: 8px; font-size: 1rem; cursor: pointer; border: none; transition: all 0.2s; font-family: inherit; }
+    .btn-secondary { background: #333; color: #ccc; }
+    .btn-secondary:hover { background: #444; }
+    .btn-primary { background: linear-gradient(135deg, #3355ff, #5577ff); color: #fff; }
+    .btn-primary:hover { background: linear-gradient(135deg, #4466ff, #6688ff); }
+    .btn-success { background: linear-gradient(135deg, #228855, #33aa77); color: #fff; font-size: 1.1rem; }
+    .btn-success:hover { background: linear-gradient(135deg, #33aa77, #44cc88); }
+
+    /* 提示画面 */
+    #screen-present { padding: 24px; max-width: 900px; margin: 0 auto; }
+    .instruction-box {
+      background: #1a2244; border: 2px solid #3355aa; border-radius: 12px;
+      padding: 16px 20px; margin-bottom: 20px; font-size: 1.1rem; color: #cce; line-height: 1.7;
+    }
+    .kanji-present-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 24px; }
+    .kanji-present-card {
+      background: #1a1a4a; border: 2px solid #4455bb; border-radius: 12px;
+      padding: 16px 6px 10px; text-align: center;
+    }
+    .kanji-present-card .kw { font-size: 2.4rem; font-weight: bold; color: #fff; line-height: 1.1; }
+    .kanji-present-card .kr { font-size: 0.8rem; color: #99bbff; margin-top: 4px; }
+
+    .free-toggle { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; font-size: 1rem; color: #aaa; }
+    .toggle-switch { display: flex; background: #222; border-radius: 6px; overflow: hidden; border: 1px solid #444; }
+    .toggle-option { padding: 6px 14px; cursor: pointer; font-size: 0.9rem; transition: all 0.2s; }
+    .toggle-option.active { background: #3355aa; color: #fff; }
+
+    /* ルーレット画面 */
+    #screen-roulette { padding: 24px; max-width: 1000px; margin: 0 auto; }
+    .roulette-layout { display: grid; grid-template-columns: 1fr 300px; gap: 24px; }
+
+    .roulette-main { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+    .roulette-counter { font-size: 1rem; color: #888; }
+
+    .roulette-display {
+      width: 340px; height: 360px;
+      background: linear-gradient(135deg, #1a1a5a, #2a2a7a);
+      border: 4px solid #5566dd; border-radius: 20px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      box-shadow: 0 0 40px rgba(80,100,255,0.4);
+      padding: 16px;
+      position: relative; overflow: hidden;
+    }
+
+    .roulette-display .r-word {
+      font-size: 8rem; font-weight: bold; color: #fff;
+      line-height: 1; text-shadow: 0 0 30px rgba(200,220,255,0.8);
+      transition: opacity 0.08s;
+    }
+    .roulette-display .r-reading {
+      font-size: 1.4rem; color: rgba(180,210,255,0.8); margin-top: 10px;
+      min-height: 1.8rem; transition: opacity 0.3s;
+    }
+
+    .roulette-display.spinning .r-word { color: #aaccff; }
+    .roulette-display.spinning .r-reading { opacity: 0; }
+
+    .roulette-display.landed { border-color: #ffcc00; box-shadow: 0 0 60px rgba(255,200,0,0.5); }
+    .roulette-display.landed .r-word {
+      animation: landPop 0.5s ease-out;
+      color: #fff;
+    }
+    @keyframes landPop {
+      0%   { transform: scale(0.7); }
+      60%  { transform: scale(1.15); }
+      100% { transform: scale(1); }
+    }
+
+    .roulette-display.empty .r-word { font-size: 3rem; color: #556; }
+
+    .roulette-buttons { display: flex; gap: 12px; margin-top: 8px; }
+    .btn-next {
+      background: linear-gradient(135deg, #ff8800, #ffaa00); color: #000;
+      font-size: 1.3rem; padding: 16px 36px; border-radius: 12px; cursor: pointer;
+      border: none; font-weight: bold; font-family: inherit; transition: all 0.2s;
+      box-shadow: 0 4px 16px rgba(255,150,0,0.4);
+    }
+    .btn-next:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(255,150,0,0.6); }
+    .btn-next:disabled { background: #444; color: #666; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    .roulette-sidebar { background: #111130; border: 1px solid #333; border-radius: 12px; padding: 16px; }
+    .sidebar-title { font-size: 0.9rem; color: #888; margin-bottom: 12px; }
+    .drawn-list { display: flex; flex-wrap: wrap; gap: 6px; }
+    .drawn-item {
+      background: #2a2a5a; border: 1px solid #4455aa; border-radius: 6px;
+      padding: 6px 8px; text-align: center;
+    }
+    .drawn-item .di-word { font-size: 1.4rem; color: #aabbff; line-height: 1; }
+    .drawn-item .di-read { font-size: 0.55rem; color: #778; }
+
+    .finish-box {
+      background: #112211; border: 2px solid #336633; border-radius: 12px;
+      padding: 20px; text-align: center; margin-top: 16px;
+    }
+    .finish-box h3 { color: #66cc77; font-size: 1.3rem; margin-bottom: 8px; }
+    .finish-box p { color: #888; font-size: 0.9rem; }
+
+    @media (max-width: 700px) {
+      .roulette-layout { grid-template-columns: 1fr; }
+      .roulette-display { width: 280px; height: 300px; }
+      .roulette-display .r-word { font-size: 6rem; }
+      .kanji-grid-15, .kanji-present-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🎯 漢字ビンゴ</h1>
+  <span class="badge">教師用</span>
+</header>
+
+<!-- 選択画面 -->
+<div id="screen-select" class="screen active">
+  <div style="padding:24px; max-width:900px; margin:0 auto;">
+    <div class="group-section">
+      <p class="section-title">📚 学年で選ぶ</p>
+      <div class="group-grid" id="grade-buttons"></div>
+    </div>
+    <div class="group-section">
+      <p class="section-title">🔑 部首グループで選ぶ</p>
+      <div class="group-grid" id="bushu-buttons"></div>
+    </div>
+    <div class="group-section">
+      <p class="section-title">🌈 テーマグループで選ぶ</p>
+      <div class="group-grid" id="theme-buttons"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 候補画面 -->
+<div id="screen-candidates" class="screen">
+  <div style="padding:24px; max-width:780px; margin:0 auto;">
+    <p class="screen-heading" id="candidates-title">候補漢字 15個</p>
+    <p class="screen-sub">クリックで候補から外す・戻す。シャッフルで別の組み合わせに。</p>
+    <div class="kanji-grid-15" id="candidates-grid"></div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="showScreen('select')">← 選び直す</button>
+      <button class="btn btn-primary" onclick="shuffleCandidates()">🔀 シャッフル</button>
+      <button class="btn btn-success" onclick="goToPresent()">子どもに見せる →</button>
+    </div>
+  </div>
+</div>
+
+<!-- 提示画面 -->
+<div id="screen-present" class="screen">
+  <div style="padding:24px; max-width:900px; margin:0 auto;">
+    <div class="instruction-box">
+      📝 下の漢字から好きな <strong>8個</strong> を選んで、ビンゴカードに書きましょう。<br>
+      <span id="free-hint" style="font-size:0.9rem; color:#99aacc;">（真ん中マスは「フリー」です）</span>
+    </div>
+    <div class="kanji-present-grid" id="present-grid"></div>
+    <div class="free-toggle">
+      <span>真ん中マス：</span>
+      <div class="toggle-switch">
+        <div class="toggle-option active" id="toggle-free" onclick="setFreeCenter(true)">フリー</div>
+        <div class="toggle-option" id="toggle-blank" onclick="setFreeCenter(false)">書き込む</div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="showScreen('candidates')">← 候補に戻る</button>
+      <button class="btn btn-success" onclick="goToRoulette()" style="font-size:1.1rem;padding:14px 28px;">
+        🎲 ルーレット開始 →
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ルーレット画面 -->
+<div id="screen-roulette" class="screen">
+  <div style="padding:24px; max-width:1000px; margin:0 auto;">
+    <div class="roulette-layout">
+      <div class="roulette-main">
+        <p class="roulette-counter" id="roulette-counter">残り 15個 / 15個</p>
+        <div class="roulette-display empty" id="roulette-display">
+          <div class="r-word" id="roulette-word">🎲</div>
+          <div class="r-reading" id="roulette-reading"></div>
+        </div>
+        <div class="roulette-buttons">
+          <button class="btn btn-secondary" onclick="showScreen('present')">← 戻る</button>
+          <button class="btn-next" id="btn-next" onclick="drawNext()">次の漢字へ</button>
+        </div>
+        <div id="finish-box" style="display:none;" class="finish-box">
+          <h3>🎉 すべて出ました！</h3>
+          <p>ビンゴはどうでしたか？</p>
+          <div style="margin-top:14px;">
+            <button class="btn btn-primary" onclick="resetRoulette()">もう一度</button>
+          </div>
+        </div>
+      </div>
+      <div class="roulette-sidebar">
+        <p class="sidebar-title">出た漢字（<span id="drawn-count">0</span>個）</p>
+        <div class="drawn-list" id="drawn-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===========================
+// 漢字データ {word, reading}
+// ===========================
+const K = (word, reading) => ({ word, reading });
+
+const KANJI_DATA = {
+  grades: {
+    '1年生': [
+      K('一','いち'), K('二','に'), K('三','さん'), K('四','し'), K('五','ご'),
+      K('六','ろく'), K('七','しち'), K('八','はち'), K('九','く'), K('十','じゅう'),
+      K('百','ひゃく'), K('千','せん'), K('万','まん'), K('円','えん'), K('年','ねん'),
+      K('日','にち'), K('月','つき'), K('火','ひ'), K('水','みず'), K('木','き'),
+      K('金','きん'), K('土','つち'), K('上','うえ'), K('下','した'), K('左','ひだり'),
+      K('右','みぎ'), K('中','なか'), K('大','だい'), K('小','しょう'),
+      K('山','やま'), K('川','かわ'), K('田','た'), K('人','ひと'), K('口','くち'),
+      K('目','め'), K('耳','みみ'), K('手','て'), K('足','あし'),
+      K('本','ほん'), K('文','ぶん'), K('字','じ'), K('学','がく'), K('校','こう'),
+      K('先','さき'), K('生','せい'), K('気','き'),
+      K('白','しろ'), K('赤','あか'), K('青','あお'), K('空','そら'), K('雨','あめ'),
+      K('石','いし'), K('森','もり'), K('林','はやし'), K('花','はな'), K('草','くさ'),
+      K('虫','むし'), K('貝','かい'), K('魚','さかな'), K('鳥','とり'), K('犬','いぬ'),
+      K('力','ちから'), K('男','おとこ'), K('女','おんな'), K('子','こ'), K('王','おう'),
+      K('玉','たま'), K('入る','はいる'), K('出る','でる'), K('見る','みる'), K('言う','いう'),
+      K('長い','ながい'), K('友','とも'), K('早い','はやい'), K('正しい','ただしい'),
+      K('名','な'), K('車','くるま'), K('休む','やすむ'),
+    ],
+    '2年生': [
+      K('春','はる'), K('夏','なつ'), K('秋','あき'), K('冬','ふゆ'),
+      K('朝','あさ'), K('昼','ひる'), K('夜','よる'), K('週','しゅう'), K('回','かい'),
+      K('時','じ'), K('分','ふん'), K('数','かず'), K('算','さん'), K('国','くに'),
+      K('語','ご'), K('社','しゃ'), K('科','か'), K('英','えい'), K('図','ず'),
+      K('音','おと'), K('体','からだ'), K('家','いえ'), K('族','ぞく'),
+      K('父','ちち'), K('母','はは'), K('兄','あに'), K('弟','おとうと'),
+      K('姉','あね'), K('妹','いもうと'),
+      K('地','ち'), K('池','いけ'), K('海','うみ'), K('谷','たに'), K('野','の'),
+      K('原','はら'), K('岩','いわ'), K('雲','くも'), K('台','だい'),
+      K('止まる','とまる'), K('走る','はしる'), K('歩く','あるく'),
+      K('来る','くる'), K('行く','いく'), K('帰る','かえる'),
+      K('食べる','たべる'), K('飲む','のむ'), K('買う','かう'), K('売る','うる'),
+      K('東','ひがし'), K('西','にし'), K('南','みなみ'), K('北','きた'),
+      K('公','こう'), K('園','えん'), K('寺','てら'), K('店','みせ'), K('市','し'),
+      K('読む','よむ'), K('書く','かく'), K('話す','はなす'), K('聞く','きく'),
+      K('思う','おもう'), K('考える','かんがえる'), K('作る','つくる'),
+      K('午','ご'), K('後','あと'), K('前','まえ'), K('直す','なおす'),
+      K('親','おや'), K('答える','こたえる'), K('点','てん'),
+      K('顔','かお'), K('形','かたち'), K('組','くみ'),
+      K('工','こう'), K('理','り'), K('光','ひかり'), K('色','いろ'),
+    ],
+    '3年生': [
+      K('化ける','ばける'), K('荷物','にもつ'), K('課','か'), K('歌う','うたう'),
+      K('解く','とく'), K('開く','ひらく'), K('界','かい'), K('角','かど'),
+      K('楽しい','たのしい'), K('活','かつ'), K('寒い','さむい'), K('感じる','かんじる'),
+      K('館','かん'), K('岸','きし'), K('期','き'), K('球','きゅう'),
+      K('究める','きわめる'), K('急ぐ','いそぐ'), K('係','かかり'),
+      K('決める','きめる'), K('県','けん'), K('研究','けんきゅう'),
+      K('元','もと'), K('湖','みずうみ'), K('向く','むく'), K('幸せ','しあわせ'),
+      K('港','みなと'), K('号','ごう'), K('根','ね'),
+      K('才','さい'), K('様','さま'), K('実','み'), K('主','ぬし'),
+      K('守る','まもる'), K('宿','しゅく'), K('所','ところ'),
+      K('暑い','あつい'), K('助ける','たすける'), K('勝つ','かつ'),
+      K('消える','きえる'), K('商','しょう'), K('書く','かく'),
+      K('植える','うえる'), K('身','み'), K('倍','ばい'), K('発','はつ'),
+      K('畑','はたけ'), K('服','ふく'), K('物','もの'), K('平','たいら'),
+      K('放す','はなす'), K('丸い','まるい'), K('緑','みどり'), K('路','みち'),
+      K('和','わ'), K('温かい','あたたかい'), K('院','いん'), K('駅','えき'),
+      K('橋','はし'), K('集まる','あつまる'), K('農','のう'), K('業','ぎょう'),
+      K('進む','すすむ'), K('速い','はやい'), K('着く','つく'), K('落ちる','おちる'),
+      K('流れる','ながれる'), K('波','なみ'), K('品','しな'), K('計る','はかる'),
+    ],
+    '4年生': [
+      K('愛','あい'), K('案','あん'), K('以','い'), K('位','くらい'), K('育つ','そだつ'),
+      K('衣','ころも'), K('印','しるし'), K('英','えい'), K('塩','しお'), K('億','おく'),
+      K('加える','くわえる'), K('果たす','はたす'), K('貨','か'), K('芽','め'),
+      K('改める','あらためる'), K('械','かい'), K('各','かく'), K('覚える','おぼえる'),
+      K('完全','かんぜん'), K('観','かん'), K('関','かん'), K('願う','ねがう'),
+      K('希望','きぼう'), K('季節','きせつ'), K('旗','はた'), K('器','うつわ'),
+      K('喜ぶ','よろこぶ'), K('達','たつ'), K('単','たん'), K('初めて','はじめて'),
+      K('典','てん'), K('努力','どりょく'), K('農','のう'),
+      K('倍','ばい'), K('敗れる','やぶれる'), K('梅','うめ'), K('飯','めし'),
+      K('費','ひ'), K('標','ひょう'), K('不','ふ'), K('付く','つく'),
+      K('変わる','かわる'), K('法','ほう'), K('牧','まき'), K('末','すえ'),
+      K('満ちる','みちる'), K('民','たみ'), K('無い','ない'), K('命','いのち'),
+      K('面','おもて'), K('毛','け'), K('養う','やしなう'), K('老いる','おいる'),
+      K('輪','わ'), K('録','ろく'), K('例','れい'), K('冷たい','つめたい'),
+      K('類','るい'), K('連なる','つらなる'), K('労','ろう'), K('料','りょう'),
+      K('量','りょう'), K('両','りょう'), K('留まる','とどまる'), K('旅','たび'),
+    ],
+    '5年生': [
+      K('圧力','あつりょく'), K('移る','うつる'), K('因','いん'), K('永い','ながい'),
+      K('映る','うつる'), K('液体','えきたい'), K('益','えき'), K('演じる','えんじる'),
+      K('応える','こたえる'), K('往','おう'),
+      K('桜','さくら'), K('仮','かり'), K('価値','かち'), K('河','かわ'),
+      K('過ぎる','すぎる'), K('快い','こころよい'), K('格','かく'), K('確かめる','たしかめる'),
+      K('額','がく'), K('刊','かん'), K('幹','みき'), K('慣れる','なれる'),
+      K('管','くだ'), K('簡単','かんたん'), K('眼','まなこ'),
+      K('技','わざ'), K('義','ぎ'), K('逆らう','さからう'), K('旧い','ふるい'),
+      K('居る','いる'), K('許す','ゆるす'), K('境','さかい'), K('均','きん'),
+      K('禁じる','きんじる'), K('句','く'), K('型','かた'), K('経る','へる'),
+      K('潔い','いさぎよい'), K('限る','かぎる'), K('現れる','あらわれる'),
+      K('減る','へる'), K('故','ゆえ'), K('個','こ'),
+      K('護る','まもる'), K('功','こう'), K('効く','きく'), K('厚い','あつい'),
+      K('耕す','たがやす'), K('航','こう'), K('鉱','こう'), K('構える','かまえる'),
+      K('講','こう'), K('混ぜる','まぜる'),
+      K('査','さ'), K('災い','わざわい'), K('採る','とる'), K('財','ざい'),
+      K('雑','ざつ'), K('支える','ささえる'), K('酸','さん'), K('賛成','さんせい'),
+      K('師','し'), K('示す','しめす'), K('似る','にる'), K('識','しき'),
+      K('謝る','あやまる'), K('授ける','さずける'), K('述べる','のべる'),
+      K('準','じゅん'), K('序','じょ'), K('除く','のぞく'),
+      K('情け','なさけ'), K('承る','うけたまわる'), K('証明','しょうめい'),
+      K('条件','じょうけん'), K('利く','きく'), K('率','りつ'), K('略す','りゃくす'),
+      K('領域','りょういき'), K('歴史','れきし'), K('練る','ねる'),
+    ],
+    '6年生': [
+      K('異なる','ことなる'), K('遺す','のこす'), K('域','いき'), K('宇','う'),
+      K('延びる','のびる'), K('沿う','そう'), K('我','われ'),
+      K('拡げる','ひろげる'), K('革','かわ'), K('割る','わる'), K('株','かぶ'),
+      K('干す','ほす'), K('巻く','まく'), K('看る','みる'), K('危ない','あぶない'),
+      K('机','つくえ'), K('揮う','ふるう'), K('貴い','とうとい'), K('疑う','うたがう'),
+      K('吸う','すう'), K('供える','そなえる'), K('胸','むね'), K('郷','ごう'),
+      K('勤める','つとめる'), K('筋','すじ'), K('系','けい'),
+      K('敬う','うやまう'), K('警告','けいこく'), K('劇','げき'), K('激しい','はげしい'),
+      K('穴','あな'), K('憲法','けんぽう'), K('権利','けんり'), K('厳しい','きびしい'),
+      K('源','みなもと'), K('己','おのれ'), K('呼ぶ','よぶ'), K('誤る','あやまる'),
+      K('后','きさき'), K('孝行','こうこう'), K('皇','おう'), K('紅','くれない'),
+      K('降りる','おりる'), K('鋼','はがね'), K('刻む','きざむ'),
+      K('骨','ほね'), K('困る','こまる'),
+      K('砂','すな'), K('座る','すわる'), K('済む','すむ'), K('裁く','さばく'),
+      K('策','さく'), K('蚕','かいこ'), K('至る','いたる'), K('私','わたし'),
+      K('姿','すがた'), K('視る','みる'), K('詞','ことば'),
+      K('若い','わかい'), K('樹','き'), K('収める','おさめる'), K('宗','しゅう'),
+      K('就く','つく'), K('衆','しゅう'), K('従う','したがう'), K('縦','たて'),
+      K('縮む','ちぢむ'), K('熟れる','うれる'), K('純粋','じゅんすい'),
+      K('諸々','もろもろ'), K('将来','しょうらい'), K('傷つく','きずつく'),
+      K('障る','さわる'), K('蒸す','むす'), K('針','はり'), K('仁','じん'),
+      K('盛る','もる'), K('聖','せい'), K('誠実','せいじつ'),
+      K('宣言','せんげん'), K('専門','せんもん'), K('泉','いずみ'), K('洗う','あらう'),
+      K('染める','そめる'), K('善い','よい'), K('奏でる','かなでる'),
+      K('窓','まど'), K('創る','つくる'), K('操る','あやつる'), K('蔵','くら'),
+      K('尊い','とうとい'),
+    ],
+  },
+  bushu: {
+    'さんずい（水）': [
+      K('海','うみ'), K('池','いけ'), K('湖','みずうみ'), K('泳ぐ','およぐ'), K('波','なみ'),
+      K('流れる','ながれる'), K('洗う','あらう'), K('港','みなと'), K('涙','なみだ'),
+      K('深い','ふかい'), K('温かい','あたたかい'), K('清い','きよい'), K('消える','きえる'),
+      K('浴びる','あびる'), K('活きる','いきる'), K('洋','よう'), K('泣く','なく'),
+      K('注ぐ','そそぐ'), K('油','あぶら'), K('漁る','あさる'), K('満ちる','みちる'),
+      K('済む','すむ'), K('演じる','えんじる'), K('液体','えきたい'), K('浜','はま'),
+      K('汽船','きせん'), K('沿う','そう'), K('泉','いずみ'), K('浮かぶ','うかぶ'),
+      K('潮','しお'), K('湯','ゆ'),
+    ],
+    'きへん（木）': [
+      K('校','こう'), K('植える','うえる'), K('根','ね'), K('松','まつ'), K('桜','さくら'),
+      K('梅','うめ'), K('棒','ぼう'), K('板','いた'), K('机','つくえ'), K('橋','はし'),
+      K('村','むら'), K('材料','ざいりょう'), K('枝','えだ'), K('様','さま'),
+      K('林','はやし'), K('森','もり'), K('桃','もも'), K('柱','はしら'),
+      K('栄える','さかえる'), K('果たす','はたす'), K('格','かく'), K('機械','きかい'),
+      K('模様','もよう'), K('権利','けんり'), K('横','よこ'), K('樹','き'), K('構える','かまえる'),
+    ],
+    'ごんべん（言）': [
+      K('話す','はなす'), K('語る','かたる'), K('読む','よむ'), K('詩','し'),
+      K('記す','しるす'), K('計る','はかる'), K('説く','とく'), K('試みる','こころみる'),
+      K('評価','ひょうか'), K('証明','しょうめい'), K('認める','みとめる'),
+      K('調べる','しらべる'), K('訓練','くんれん'), K('訳す','やくす'), K('詞','ことば'),
+      K('謝る','あやまる'), K('識る','しる'), K('討つ','うつ'), K('論じる','ろんじる'),
+      K('講じる','こうじる'), K('訪れる','おとずれる'), K('詳しい','くわしい'),
+      K('誤る','あやまる'), K('課す','かす'), K('誌','し'), K('述べる','のべる'),
+    ],
+    'てへん（手）': [
+      K('持つ','もつ'), K('打つ','うつ'), K('投げる','なげる'), K('拾う','ひろう'),
+      K('指す','さす'), K('押す','おす'), K('挙げる','あげる'), K('探す','さがす'),
+      K('掃く','はく'), K('折る','おる'), K('担ぐ','かつぐ'), K('招く','まねく'),
+      K('接する','せっする'), K('授ける','さずける'), K('提げる','さげる'),
+      K('握る','にぎる'), K('操る','あやつる'), K('損なう','そこなう'),
+      K('拡げる','ひろげる'), K('抱く','だく'), K('振る','ふる'), K('払う','はらう'),
+      K('拍手','はくしゅ'), K('批判','ひはん'), K('技','わざ'), K('挑む','いどむ'),
+    ],
+    'にんべん（人）': [
+      K('仕事','しごと'), K('体','からだ'), K('働く','はたらく'), K('休む','やすむ'),
+      K('他','ほか'), K('代わる','かわる'), K('住む','すむ'), K('倍','ばい'),
+      K('側','そば'), K('使う','つかう'), K('伝える','つたえる'), K('保つ','たもつ'),
+      K('便利','べんり'), K('停まる','とまる'), K('健康','けんこう'), K('像','ぞう'),
+      K('似る','にる'), K('仲間','なかま'), K('位置','いち'), K('低い','ひくい'),
+      K('供える','そなえる'), K('価値','かち'), K('候補','こうほ'),
+      K('借りる','かりる'), K('俳優','はいゆう'), K('仮','かり'),
+    ],
+    'こころ（心）': [
+      K('思う','おもう'), K('忘れる','わすれる'), K('念','ねん'), K('忙しい','いそがしい'),
+      K('快い','こころよい'), K('忠実','ちゅうじつ'), K('恐れる','おそれる'),
+      K('悲しい','かなしい'), K('情け','なさけ'), K('悔やむ','くやむ'),
+      K('悩む','なやむ'), K('慣れる','なれる'), K('慎む','つつしむ'),
+      K('感じる','かんじる'), K('恩','おん'), K('志す','こころざす'),
+      K('忍ぶ','しのぶ'), K('怒る','おこる'), K('恥ずかしい','はずかしい'),
+      K('惜しい','おしい'), K('憲法','けんぽう'), K('慕う','したう'), K('憶える','おぼえる'),
+    ],
+    'くさかんむり（植物）': [
+      K('花','はな'), K('草','くさ'), K('葉','は'), K('薬','くすり'), K('芸術','げいじゅつ'),
+      K('茶','ちゃ'), K('苦しい','くるしい'), K('菜','な'), K('落ちる','おちる'),
+      K('若い','わかい'), K('英語','えいご'), K('苗','なえ'), K('蒸す','むす'),
+      K('蔵','くら'), K('著す','あらわす'), K('芽','め'), K('荷物','にもつ'),
+      K('荒い','あらい'),
+    ],
+    'いとへん（糸）': [
+      K('紙','かみ'), K('紅','くれない'), K('細い','ほそい'), K('組む','くむ'),
+      K('給食','きゅうしょく'), K('続く','つづく'), K('練る','ねる'), K('絵','え'),
+      K('絶える','たえる'), K('縦','たて'), K('横','よこ'), K('統べる','すべる'),
+      K('編む','あむ'), K('結ぶ','むすぶ'), K('綿','わた'), K('絹','きぬ'),
+      K('純粋','じゅんすい'), K('納める','おさめる'), K('約束','やくそく'),
+      K('緑','みどり'), K('終わる','おわる'), K('経る','へる'), K('線','せん'),
+      K('総合','そうごう'), K('縮む','ちぢむ'), K('績','せき'),
+    ],
+    'たけかんむり（竹）': [
+      K('笑う','わらう'), K('筆','ふで'), K('箱','はこ'), K('算数','さんすう'),
+      K('答える','こたえる'), K('節','ふし'), K('策','さく'), K('築く','きずく'),
+      K('笛','ふえ'), K('箸','はし'), K('管','くだ'), K('範囲','はんい'), K('簡単','かんたん'),
+    ],
+    'うかんむり（家）': [
+      K('家','いえ'), K('室','むろ'), K('宮','みや'), K('安い','やすい'),
+      K('定まる','さだまる'), K('宇宙','うちゅう'), K('守る','まもる'), K('字','じ'),
+      K('完成','かんせい'), K('宝','たから'), K('寄る','よる'), K('客','きゃく'),
+      K('寒い','さむい'), K('富む','とむ'), K('寝る','ねる'), K('察する','さっする'),
+      K('密かに','ひそかに'), K('害','がい'), K('宣言','せんげん'),
+    ],
+  },
+  themes: {
+    '食べ物🍱': [
+      K('食べる','たべる'), K('飯','めし'), K('飲む','のむ'), K('米','こめ'), K('穀物','こくもつ'),
+      K('野菜','やさい'), K('肉','にく'), K('魚','さかな'), K('豆','まめ'), K('麦','むぎ'),
+      K('塩','しお'), K('茶','ちゃ'), K('餅','もち'), K('汁','しる'), K('豚','ぶた'),
+      K('鶏','にわとり'), K('菓子','かし'), K('酢','す'), K('湯','ゆ'), K('卵','たまご'),
+    ],
+    '体の部位🫀': [
+      K('頭','あたま'), K('顔','かお'), K('首','くび'), K('肩','かた'), K('腕','うで'),
+      K('腰','こし'), K('足','あし'), K('胸','むね'), K('背','せ'), K('腹','はら'),
+      K('手','て'), K('目','め'), K('耳','みみ'), K('口','くち'), K('鼻','はな'),
+      K('歯','は'), K('舌','した'), K('眉','まゆ'), K('指','ゆび'), K('爪','つめ'),
+    ],
+    '方向・場所🧭': [
+      K('東','ひがし'), K('西','にし'), K('南','みなみ'), K('北','きた'),
+      K('上','うえ'), K('下','した'), K('前','まえ'), K('後ろ','うしろ'),
+      K('右','みぎ'), K('左','ひだり'), K('内','うち'), K('外','そと'), K('中','なか'),
+      K('横','よこ'), K('縦','たて'), K('奥','おく'), K('端','はし'),
+      K('角','かど'), K('隅','すみ'), K('際','きわ'),
+    ],
+    '動き・動詞🏃': [
+      K('走る','はしる'), K('歩く','あるく'), K('飛ぶ','とぶ'), K('泳ぐ','およぐ'),
+      K('投げる','なげる'), K('打つ','うつ'), K('押す','おす'), K('引く','ひく'),
+      K('叫ぶ','さけぶ'), K('笑う','わらう'), K('泣く','なく'), K('眠る','ねむる'),
+      K('起きる','おきる'), K('寝る','ねる'), K('読む','よむ'), K('書く','かく'),
+      K('食べる','たべる'), K('飲む','のむ'), K('遊ぶ','あそぶ'), K('跳ぶ','とぶ'),
+    ],
+  }
+};
+
+// ===========================
+// アプリ状態
+// ===========================
+let selectedGroupName = '';
+let selectedGroupKanji = [];
+let candidates = []; // {word, reading}[]
+let removedIndices = new Set();
+let drawnKanji = [];
+let remainingKanji = [];
+let freeCenter = true;
+let isSpinning = false;
+let spinTimer = null;
+
+// ===========================
+// 初期化
+// ===========================
+function init() {
+  const gradeDiv = document.getElementById('grade-buttons');
+  const bushuDiv = document.getElementById('bushu-buttons');
+  const themeDiv = document.getElementById('theme-buttons');
+
+  Object.entries(KANJI_DATA.grades).forEach(([name, list]) => {
+    gradeDiv.appendChild(makeGroupBtn(name, list));
+  });
+  Object.entries(KANJI_DATA.bushu).forEach(([name, list]) => {
+    bushuDiv.appendChild(makeGroupBtn(name, list));
+  });
+  Object.entries(KANJI_DATA.themes).forEach(([name, list]) => {
+    themeDiv.appendChild(makeGroupBtn(name, list));
+  });
+}
+
+function makeGroupBtn(name, list) {
+  const btn = document.createElement('button');
+  btn.className = 'group-btn';
+  btn.innerHTML = `${name}<span>${list.length}語</span>`;
+  btn.onclick = () => selectGroup(name, list);
+  return btn;
+}
+
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+}
+
+// ===========================
+// グループ選択
+// ===========================
+function selectGroup(name, kanjiList) {
+  selectedGroupName = name;
+  selectedGroupKanji = [...kanjiList];
+  generateCandidates();
+  document.getElementById('candidates-title').textContent = `候補 — ${name}`;
+  renderCandidates();
+  showScreen('candidates');
+}
+
+function generateCandidates() {
+  const shuffled = [...selectedGroupKanji].sort(() => Math.random() - 0.5);
+  candidates = shuffled.slice(0, Math.min(15, shuffled.length));
+  removedIndices = new Set();
+}
+
+function shuffleCandidates() { generateCandidates(); renderCandidates(); }
+
+function toggleCandidate(index) {
+  if (removedIndices.has(index)) removedIndices.delete(index);
+  else removedIndices.add(index);
+  renderCandidates();
+}
+
+function renderCandidates() {
+  const grid = document.getElementById('candidates-grid');
+  grid.innerHTML = '';
+  candidates.forEach((k, i) => {
+    const card = document.createElement('div');
+    card.className = 'kanji-card' + (removedIndices.has(i) ? ' removed' : '');
+    card.innerHTML = `<div class="kw">${k.word}</div><div class="kr">${k.reading}</div>`;
+    card.onclick = () => toggleCandidate(i);
+    grid.appendChild(card);
+  });
+}
+
+// ===========================
+// 提示画面
+// ===========================
+function goToPresent() {
+  const active = candidates.filter((_, i) => !removedIndices.has(i));
+  if (active.length < 9) { alert('少なくとも9個必要です。'); return; }
+  renderPresentGrid(active);
+  showScreen('present');
+}
+
+function renderPresentGrid(list) {
+  const grid = document.getElementById('present-grid');
+  grid.innerHTML = '';
+  list.forEach(k => {
+    const card = document.createElement('div');
+    card.className = 'kanji-present-card';
+    card.innerHTML = `<div class="kw">${k.word}</div><div class="kr">${k.reading}</div>`;
+    grid.appendChild(card);
+  });
+}
+
+function setFreeCenter(val) {
+  freeCenter = val;
+  document.getElementById('toggle-free').classList.toggle('active', val);
+  document.getElementById('toggle-blank').classList.toggle('active', !val);
+  document.getElementById('free-hint').textContent = val
+    ? '（真ん中マスは「フリー」です）'
+    : '（真ん中マスも好きな漢字を書きましょう）';
+}
+
+// ===========================
+// ルーレット
+// ===========================
+function goToRoulette() {
+  const active = candidates.filter((_, i) => !removedIndices.has(i));
+  drawnKanji = [];
+  remainingKanji = [...active].sort(() => Math.random() - 0.5);
+  isSpinning = false;
+
+  document.getElementById('roulette-word').textContent = '🎲';
+  document.getElementById('roulette-reading').textContent = '';
+  document.getElementById('roulette-display').className = 'roulette-display empty';
+  document.getElementById('drawn-list').innerHTML = '';
+  document.getElementById('drawn-count').textContent = '0';
+  document.getElementById('finish-box').style.display = 'none';
+  document.getElementById('btn-next').disabled = false;
+  updateCounter();
+  showScreen('roulette');
+}
+
+function updateCounter() {
+  const total = drawnKanji.length + remainingKanji.length;
+  document.getElementById('roulette-counter').textContent =
+    `残り ${remainingKanji.length}個 / ${total}個`;
+}
+
+function drawNext() {
+  if (isSpinning || remainingKanji.length === 0) return;
+  isSpinning = true;
+  document.getElementById('btn-next').disabled = true;
+
+  const target = remainingKanji.shift();
+  const poolForSpin = candidates.filter(k => k.word !== target.word);
+
+  const display = document.getElementById('roulette-display');
+  const wordEl = document.getElementById('roulette-word');
+  const readingEl = document.getElementById('roulette-reading');
+
+  display.className = 'roulette-display spinning';
+  wordEl.style.fontSize = '6rem';
+  readingEl.textContent = '';
+
+  const startTime = Date.now();
+  const SPIN_MS = 2200;
+
+  function getInterval(elapsed) {
+    const prog = elapsed / SPIN_MS;
+    if (prog < 0.55) return 65;
+    const slow = (prog - 0.55) / 0.45;
+    return 65 + slow * slow * 380;
+  }
+
+  function frame() {
+    const elapsed = Date.now() - startTime;
+    if (elapsed >= SPIN_MS) {
+      // 着地
+      display.className = 'roulette-display landed';
+      wordEl.style.fontSize = '';
+      wordEl.textContent = target.word;
+      readingEl.textContent = target.reading;
+
+      drawnKanji.push(target);
+      addDrawnItem(target);
+      updateCounter();
+
+      if (remainingKanji.length === 0) {
+        setTimeout(() => { document.getElementById('finish-box').style.display = 'block'; }, 700);
+      } else {
+        document.getElementById('btn-next').disabled = false;
+      }
+      isSpinning = false;
+      return;
+    }
+
+    // スピン中：候補からランダム表示
+    const src = poolForSpin.length > 0 ? poolForSpin : candidates;
+    const rnd = src[Math.floor(Math.random() * src.length)];
+    wordEl.textContent = rnd.word;
+
+    spinTimer = setTimeout(frame, getInterval(elapsed));
+  }
+
+  frame();
+}
+
+function addDrawnItem(k) {
+  const item = document.createElement('div');
+  item.className = 'drawn-item';
+  item.innerHTML = `<div class="di-word">${k.word}</div><div class="di-read">${k.reading}</div>`;
+  document.getElementById('drawn-list').prepend(item);
+  document.getElementById('drawn-count').textContent = drawnKanji.length;
+}
+
+function resetRoulette() { goToRoulette(); }
+
+init();
+</script>
+</body>
+</html>
